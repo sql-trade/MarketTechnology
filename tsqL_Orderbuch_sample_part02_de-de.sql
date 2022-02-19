@@ -25,17 +25,17 @@ UPDATE tempdb.dbo.OrderListe
  WHERE 1 = 1
    and Order_fill is NULL 
    and (  bid_OrderType = 'Market'
-	   or ask_OrderType = 'Market'
-	   )
+       or ask_OrderType = 'Market'
+       )
 
 UPDATE tempdb.dbo.OrderListe
    SET Order_fill = @new_OpenKurs
  WHERE Order_ID =  3 --bid_Limit
     or Order_ID =  4 --bid_Limit
-	or Order_ID =  7 --ask_Limit
+    or Order_ID =  7 --ask_Limit
     or Order_ID =  8 --ask_Limit
-	or Order_ID =  9 --bid_Limit
-	or Order_ID = 13 --bid_Limit  -- 3700 bid-ask_Volume
+    or Order_ID =  9 --bid_Limit
+    or Order_ID = 13 --bid_Limit  -- 3700 bid-ask_Volume
 -- ===================
 SELECT *
 FROM   tempdb.dbo.OrderListe
@@ -53,7 +53,8 @@ ORDER  by Kurs desc
 
 INSERT INTO tempdb.dbo.OrderListe
        ( Order_ID , Order_Time , bid_OrderType , bid_OrderSize , Kurs , ask_OrderSize , ask_OrderType, Order_fill )
-VALUES (       15 ,    '09:02' ,          NULL ,          NULL ,   94 ,           100 ,      'Limit' , NULL )
+VALUES (       15 ,    '09:02' ,          NULL ,          NULL ,   94 ,           100 ,      'Limit' , NULL )      
 
 
 -->> neuer Kurs 94 ..
+
