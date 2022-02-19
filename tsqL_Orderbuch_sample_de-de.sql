@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS tempdb.dbo.OrderListe;
 DROP TABLE IF EXISTS tempdb.dbo.OrderListe_step01;
 DROP TABLE IF EXISTS tempdb.dbo.OrderListe_step02;
 DROP TABLE IF EXISTS tempdb.dbo.OrderListe_step03;
+DROP TABLE IF EXISTS tempdb.dbo.OrderListe_step04;
 
 CREATE TABLE tempdb.dbo.OrderListe (
                Order_ID        int  
@@ -16,30 +17,32 @@ CREATE TABLE tempdb.dbo.OrderListe (
 			 , bid_OrderType   varchar(20) NULL
 			 , ask_OrderSize   int  NULL
 			 , ask_OrderType   varchar(20) NULL
+			 , Order_fill      int    
 			 )
 ----
 
 INSERT INTO tempdb.dbo.OrderListe
-       ( Order_ID , Order_Time , bid_OrderType , bid_OrderSize , Kurs , ask_OrderSize , ask_OrderType )
-VALUES (        0 ,    '00:00' , 'SchlussKurs' ,          NULL ,  100 ,          NULL ,          NULL )
+       ( Order_ID , Order_Time , bid_OrderType , bid_OrderSize , Kurs , ask_OrderSize , ask_OrderType, Order_fill )
+VALUES (        0 ,    '00:00' , 'SchlussKurs' ,          NULL ,  100 ,          NULL ,          NULL, NULL )
+																						
+     , (        1 ,    '08:10' ,       'Limit' ,           200 ,   99 ,          NULL ,          NULL, NULL )
+	 , (        2 ,    '08:20' ,          NULL ,          NULL , NULL ,           500 ,      'Market', NULL )
+	 , (        3 ,    '08:21' ,       'Limit' ,          1000 ,   88 ,          NULL ,          NULL, NULL )
+     																						
+	 , (        4 ,    '08:25' ,          NULL ,          NULL ,   89 ,           800 ,       'Limit', NULL )
+	 , (        5 ,    '08:30' ,      'Market' ,           700 , NULL ,          NULL ,          NULL, NULL )
+	 , (        6 ,    '08:30' ,       'Limit' ,            20 ,  105 ,          NULL ,          NULL, NULL )
+																							
+     , (        7 ,    '08:35' ,          NULL ,          NULL ,   95 ,          1500 ,       'Limit', NULL )
+	 , (        8 ,    '08:38' ,          NULL ,          NULL ,   92 ,           700 ,       'Limit', NULL )
+	 , (        9 ,    '08:40' ,       'Limit' ,           300 ,   90 ,          NULL ,          NULL, NULL )
+																								
+	 , (       10 ,    '08:40' ,      'Market' ,          1000 , NULL ,          NULL ,          NULL, NULL )
+     , (       11 ,    '08:45' ,          NULL ,          NULL ,  125 ,           500 ,       'Limit', NULL )
+	 , (       12 ,    '08:55' ,          NULL ,          NULL , NULL ,           200 ,      'Market', NULL )
 
-     , (        1 ,    '08:10' ,       'Limit' ,           200 ,   99 ,          NULL ,          NULL )
-	 , (        2 ,    '08:20' ,          NULL ,          NULL , NULL ,           500 ,      'Market' )
-	 , (        3 ,    '08:21' ,       'Limit' ,          1000 ,   88 ,          NULL ,          NULL )
-     
-	 , (        4 ,    '08:25' ,          NULL ,          NULL ,   89 ,           800 ,       'Limit' )
-	 , (        5 ,    '08:30' ,      'Market' ,           700 , NULL ,          NULL ,          NULL )
-	 , (        6 ,    '08:30' ,       'Limit' ,            20 ,  105 ,          NULL ,          NULL )
-
-     , (        7 ,    '08:35' ,          NULL ,          NULL ,   95 ,          1500 ,       'Limit' )
-	 , (        8 ,    '08:38' ,          NULL ,          NULL ,   92 ,           700 ,       'Limit' )
-	 , (        9 ,    '08:40' ,       'Limit' ,           300 ,   90 ,          NULL ,          NULL )
-
-	 , (       10 ,    '08:40' ,      'Market' ,          1000 , NULL ,          NULL ,          NULL )
-     , (       11 ,    '08:45' ,          NULL ,          NULL ,  125 ,           500 ,       'Limit' )
-	 , (       12 ,    '08:55' ,          NULL ,          NULL , NULL ,           200 ,      'Market' )
-	 , (       13 ,    '08:58' ,       'Limit' ,          1000 ,   95 ,          NULL ,          NULL )
-
+	 , (       13 ,    '08:58' ,       'Limit' ,           700 ,   95 ,          NULL ,          NULL, NULL )
+	 , (       14 ,    '08:59' ,       'Limit' ,           300 ,   95 ,          NULL ,          NULL, NULL )
 ----
 Declare @letzterKurs  int
 SET @letzterKurs = ( select Kurs from tempdb.dbo.OrderListe where bid_OrderType = 'SchlussKurs' )
@@ -64,7 +67,9 @@ select Order_ID, Order_Time
 		  ELSE                      		  Kurs 
 	   END       as 'Kurs' 	  
 	 , ask_OrderSize, ask_OrderType
+	 , Order_fill
 from   tempdb.dbo.OrderListe
+where  Order_fill is NULL  -- ?!  ggf. Teilausführung ...
 )
 SELECT KL.Kurs as 'sort'
      , OL.Order_ID
@@ -72,6 +77,7 @@ SELECT KL.Kurs as 'sort'
      , OL.bid_OrderType, OL.bid_OrderSize
 	 , OL.Kurs
 	 , OL.ask_OrderSize, OL.ask_OrderType
+	 , OL.Order_fill
 INTO   tempdb.dbo.OrderListe_step01
 FROM   KursListe KL
 left   join   
@@ -151,6 +157,7 @@ select sort
 	                                   Range between unbounded preceding and current row) 
 			 , 0 )
 	 + @ask_OrderSize_Market   as  'cum_ask_OrderSize'
+	 , Order_fill
 into   tempdb.dbo.OrderListe_step02
 from   tempdb.dbo.OrderListe_step01
 where  kurs is NOT NULL
@@ -217,9 +224,6 @@ FROM   tmpStep02
 GROUP  by sort, bid_OrderType, Kurs, ask_OrderType
 
 -----------------------
-IF @showStep = 'step03'
-BEGIN
-
 ;
 with 
 tmpStep03 as
@@ -240,14 +244,23 @@ SELECT T.*
      , CASE
 	      WHEN Umsatz = maxUmsatz THEN Kurs
 		  ELSE                         NULL
-       END        as 'info'
+       END        as 'Kurs_calc'
      , CASE
 	      WHEN Umsatz = maxUmsatz THEN '<<'
 		  ELSE                         ''
-       END        as 'info'
+       END        as 'info_desc'
+into   tempdb.dbo.OrderListe_step04
 FROM   tmpStep03 T
 cross  join  maxUmsatz
 ORDER  by sort desc
 
-END -- end step03
+
 ---
+IF @showStep = 'step03'
+BEGIN
+
+SELECT *
+FROM   tempdb.dbo.OrderListe_step04
+ORDER  by sort desc
+
+END -- end step03
