@@ -5,6 +5,8 @@ GO
 Declare @new_OpenKurs    int = 95
       , @ask_OrderSize   int
 
+-- ?? was "verschwindet aus dem orderbuch ?
+
 SELECT @ask_OrderSize = cum_ask_OrderSize
 FROM   tempdb.dbo.OrderListe_step04
 WHERE  sort = @new_OpenKurs
@@ -53,3 +55,5 @@ INSERT INTO tempdb.dbo.OrderListe
        ( Order_ID , Order_Time , bid_OrderType , bid_OrderSize , Kurs , ask_OrderSize , ask_OrderType, Order_fill )
 VALUES (       15 ,    '09:02' ,          NULL ,          NULL ,   94 ,           100 ,      'Limit' , NULL )
 
+
+-->> neuer Kurs 94 ..
